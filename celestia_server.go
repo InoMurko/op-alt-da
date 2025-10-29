@@ -13,6 +13,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/celestiaorg/celestia-node/blob"
+	libshare "github.com/celestiaorg/go-square/v2/share"
 	s3 "github.com/celestiaorg/op-alt-da/s3"
 	altda "github.com/ethereum-optimism/optimism/op-alt-da"
 	"github.com/ethereum-optimism/optimism/op-service/httputil"
@@ -243,7 +245,11 @@ func (d *CelestiaServer) HandlePut(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if d.cache || d.fallback {
-		err = d.handleRedundantWrites(r.Context(), commitment, input)
+		b, err := blob.NewBlob(libshare.ShareVersionZero, d.store.Namespace, input, nil)
+		if err != nil {
+			d.log.Error("Failed to write to redundant backends: Failed to blob blob", "err", err)
+		}
+		err = d.handleRedundantWrites(r.Context(), commitment, b.Data())
 		if err != nil {
 			d.log.Error("Failed to write to redundant backends", "err", err)
 		}
